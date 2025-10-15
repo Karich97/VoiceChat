@@ -17,8 +17,6 @@ class RoomService {
         return room
     }
 
-    fun getRoom(id: String): Room? = rooms[id]
-
     fun joinRoom(id: String, socket: Socket): Room? {
         val room = rooms[id] ?: return null
         synchronized(room) {
@@ -26,5 +24,32 @@ class RoomService {
             else if (room.clientB == null) room.clientB = socket
         }
         return room
+    }
+
+    fun leaveRoom(id: String, socket: Socket) {
+        val room = rooms[id] ?: return
+        synchronized(room) {
+            if (room.clientA == socket) {
+                room.clientA = null
+                // дисконектим второго, если есть
+                room.clientB?.close()
+                room.clientB = null
+            } else if (room.clientB == socket) {
+                room.clientB = null
+            }
+
+            // удаляем комнату, если оба вышли
+            if (room.clientA == null && room.clientB == null) {
+                rooms.remove(id)
+            }
+        }
+    }
+
+    fun listParticipants(id: String): List<String> {
+        val room = rooms[id] ?: return emptyList()
+        val participants = mutableListOf<String>()
+        if (room.clientA != null) participants.add("Admin ${room.name}")
+        if (room.clientB != null) participants.add("Guest")
+        return participants
     }
 }

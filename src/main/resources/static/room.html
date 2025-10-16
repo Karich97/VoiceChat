@@ -101,7 +101,7 @@
       }
 
       const wsProtocol = window.location.protocol==="https:"?"wss:":"ws:";
-      const wsUrl=`${wsProtocol}//192.168.0.112:8443/voice?room=${roomId}&name=${encodeURIComponent(userName)}`;
+      const wsUrl = `${wsProtocol}//${window.location.host}/voice?room=${roomId}&name=${encodeURIComponent(userName)}`;
       ws = new WebSocket(wsUrl);
       ws.binaryType="arraybuffer";
 

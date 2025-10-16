@@ -32,28 +32,6 @@ class VoiceWebSocketHandler(private val roomService: RoomService) : BinaryWebSoc
         println("🎧 User joined room $roomId")
     }
 
-//    override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
-//        val roomId = session.uri?.query?.split("&")?.firstOrNull { it.startsWith("room=") }?.substringAfter("=")
-//        if (roomId != null) {
-//            rooms[roomId]?.forEach { s ->
-//                if (s != session && s.isOpen) s.sendMessage(message)
-//            }
-//        }
-//    }
-//
-//    override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
-//        val roomId = sessionRoom[session] ?: return
-//        val room = roomService.getRoom(roomId) ?: return
-//
-//        listOf(room.clientA, room.clientB).forEach { s ->
-//            if (s != null && socketMap[session] != s) {
-//                try {
-//                    // здесь s.send() если реально работает TCP, иначе через WS
-//                } catch (_: Exception) {}
-//            }
-//        }
-//    }
-
     override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
         val roomId = sessionRoom[session] ?: return
 

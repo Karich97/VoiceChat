@@ -5,11 +5,12 @@ let userName = params.get("name");
 const statusEl = document.getElementById("status");
 const muteBtn = document.getElementById("muteBtn");
 const usersEl = document.getElementById("users");
+const waitingEl = document.getElementById("waiting");
+const controlsEl = document.getElementById("controls");
 
-let muted = false, ws, audioCtx;
-let analyser, dataArray, silenceFrames = 0;
+let muted = false, ws, audioCtx, analyser, dataArray, silenceFrames = 0;
 
-// === Тема ===
+// === Theme ===
 function toggleTheme() {
   const isDark = document.body.classList.toggle("dark");
   localStorage.setItem("theme", isDark ? "dark" : "light");
@@ -23,17 +24,16 @@ function toggleTheme() {
   }
 })();
 
-// === GZIP ===
-async function gzipCompress(data) {
-  const cs = new CompressionStream("gzip");
-  const writer = cs.writable.getWriter();
-  writer.write(data);
-  writer.close();
-  const compressed = await new Response(cs.readable).arrayBuffer();
-  return compressed;
+// === Copy link ===
+function copyInvite() {
+  const url = `${window.location.origin}/room.html?id=${roomId}`;
+  navigator.clipboard.writeText(url);
+  const btn = document.querySelector(".copy");
+  btn.textContent = "Copied ✅";
+  setTimeout(() => (btn.textContent = "Copy Invite Link 📋"), 1500);
 }
 
-// === Аудио ===
+// === Audio ===
 async function initAudio() {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -66,16 +66,16 @@ async function initAudio() {
     const int16 = new Int16Array(channel.length);
     for (let i = 0; i < channel.length; i++) int16[i] = channel[i] * 0x7fff;
 
-    try {
-      const compressed = await gzipCompress(int16);
-      ws.send(compressed);
-    } catch (err) {
-      console.warn("GZIP failed:", err);
-    }
+    const cs = new CompressionStream("gzip");
+    const writer = cs.writable.getWriter();
+    writer.write(int16);
+    writer.close();
+    const compressed = await new Response(cs.readable).arrayBuffer();
+    ws.send(compressed);
   };
 }
 
-// === Участники ===
+// === Users ===
 function renderUsers(list) {
   usersEl.innerHTML = "";
   if (!list.length) {
@@ -84,20 +84,22 @@ function renderUsers(list) {
   }
   list.forEach(u => {
     const div = document.createElement("div");
-    div.className = "user" + (u === userName ? " self" : "") + (u.active ? " active" : "");
+    div.className = "user" + (u === userName ? " self" : "");
     div.textContent = u.name || u;
     usersEl.appendChild(div);
   });
+
+  // Убираем ожидание, когда двое подключены
+  if (list.length >= 2) {
+    waitingEl.style.display = "none";
+    controlsEl.style.display = "flex";
+  }
 }
 
-// === WebSocket ===
+// === WS ===
 async function connect() {
   if (!userName) {
-    userName = prompt("Enter your name");
-    if (!userName) {
-      window.location.href = "/";
-      return;
-    }
+    userName = prompt("Enter your name") || "Guest";
   }
 
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -109,6 +111,7 @@ async function connect() {
     statusEl.textContent = "Connected ✅";
     statusEl.className = "connected";
     initAudio();
+    waitingEl.style.display = "block"; // показываем, пока второй не присоединился
   };
 
   ws.onmessage = async event => {
@@ -116,15 +119,10 @@ async function connect() {
       try {
         const data = JSON.parse(event.data);
         if (data.users) renderUsers(data.users);
-        if (data.kick && data.kick.includes(userName)) {
-          alert("You were disconnected!");
-          window.location.href = "/";
-        }
       } catch (_) {}
       return;
     }
 
-    // === Декодирование gzip
     try {
       const ds = new DecompressionStream("gzip");
       const writer = ds.writable.getWriter();
@@ -153,7 +151,6 @@ async function connect() {
   };
 }
 
-// === Кнопки ===
 muteBtn.onclick = () => {
   muted = !muted;
   muteBtn.textContent = muted ? "Unmute" : "Mute";

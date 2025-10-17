@@ -1,28 +1,57 @@
-/* Комната — только уникальные элементы */
+/* === ROOM SPECIFIC === */
 
 #status {
   text-align: center;
   font-weight: 600;
   margin-bottom: 1em;
+  font-size: 1.1em;
+  transition: color 0.3s;
 }
-
 #status.connected { color: #00c851; }
 #status.disconnected { color: #ff4444; }
 
-.controls {
-  display: flex;
-  justify-content: center;
-  gap: 1em;
-  margin-bottom: 1.5em;
+/* --- Ожидание собеседника --- */
+.waiting {
+  text-align: center;
+  padding: 2em 1em;
 }
 
-button.leave { background: #dc3545; }
-button.leave:hover { background: #b02a37; }
-button.copy { background: #28a745; }
-button.copy:hover { background: #218838; }
-button.muted { background: #6c757d; }
+.waiting h2 {
+  font-size: 1.5em;
+  margin-bottom: 0.5em;
+}
 
-#users {
+.waiting .subtext {
+  font-size: 1em;
+  opacity: 0.85;
+  margin-bottom: 1em;
+}
+
+.invite-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8em;
+}
+
+#roomNumberDisplay {
+  font-size: 1.6em;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: var(--btn);
+}
+
+/* --- Активная комната --- */
+.active-room {
+  text-align: center;
+}
+
+#roomHeader {
+  font-size: 1.6em;
+  margin-bottom: 1em;
+}
+
+.users {
   background: var(--card);
   border-radius: 12px;
   padding: 1em;
@@ -30,6 +59,8 @@ button.muted { background: #6c757d; }
     inset 4px 4px 8px var(--shadow-dark),
     inset -4px -4px 8px var(--shadow-light);
   transition: background 0.4s;
+  min-height: 120px;
+  margin-bottom: 1.5em;
 }
 
 .user {
@@ -37,14 +68,41 @@ button.muted { background: #6c757d; }
   border-radius: 8px;
   margin-bottom: 0.3em;
 }
+
 .user.self {
   font-weight: bold;
   color: var(--btn);
 }
 
-.waiting {
-  text-align: center;
-  padding: 2em;
-  font-size: 1.1em;
-  opacity: 0.8;
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1em;
+}
+
+/* --- Кнопка выхода --- */
+.bottom-controls {
+  margin-top: 2em;
+  display: flex;
+  justify-content: center;
+}
+
+button.leave {
+  width: 60%;
+  background: #dc3545;
+}
+
+button.leave:hover {
+  background: #b02a37;
+}
+
+/* Зелёная кнопка копирования */
+button.copy {
+  width: auto;
+  padding: 0.8em 1.4em;
+  background: #28a745;
+}
+
+button.copy:hover {
+  background: #218838;
 }

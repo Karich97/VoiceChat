@@ -6,9 +6,28 @@ const statusEl = document.getElementById("status");
 const muteBtn = document.getElementById("muteBtn");
 const usersEl = document.getElementById("users");
 const waitingEl = document.getElementById("waiting");
-const controlsEl = document.getElementById("controls");
+const activeRoomEl = document.getElementById("activeRoom");
 
 let muted = false, ws, audioCtx, analyser, dataArray, silenceFrames = 0;
+
+// === Показ комнаты ожидания ===
+function showWaiting() {
+  waitingEl.style.display = "block";
+  activeRoomEl.style.display = "none";
+    console.log("Room ID:", roomId);
+  const roomTitle = document.getElementById("roomTitle");
+  roomTitle.textContent = `🕓 Waiting Room #${roomId}`;
+}
+
+// === Показ активной комнаты ===
+function showActiveRoom() {
+  waitingEl.style.display = "none";
+  activeRoomEl.style.display = "block";
+  muteBtn.style.display = "inline-block"; // показываем кнопку
+
+  const roomHeader = document.getElementById("roomHeader");
+  roomHeader.textContent = `🎤 Voice Room #${roomId}`;
+}
 
 // === Copy link ===
 function copyInvite() {
@@ -77,8 +96,9 @@ function renderUsers(list) {
 
   // Убираем ожидание, когда двое подключены
   if (list.length >= 2) {
-    waitingEl.style.display = "none";
-    controlsEl.style.display = "flex";
+    showActiveRoom();
+  } else {
+    showWaiting();
   }
 }
 
@@ -98,6 +118,7 @@ async function connect() {
     statusEl.className = "connected";
     initAudio();
     waitingEl.style.display = "block"; // показываем, пока второй не присоединился
+    showWaiting();
   };
 
   ws.onmessage = async event => {
@@ -142,6 +163,7 @@ muteBtn.onclick = () => {
   muteBtn.textContent = muted ? "Unmute" : "Mute";
   muteBtn.classList.toggle("muted", muted);
 };
+
 function leaveRoom() {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ leave: true }));
   ws.close();

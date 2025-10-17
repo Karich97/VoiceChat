@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>🎙 Voice Room</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/room.css">
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/room.css" />
 </head>
 <body>
 <header class="header">
@@ -13,21 +13,33 @@
 </header>
 
 <div class="container">
-    <h1>🎧 Voice Room</h1>
+    <!-- Статус соединения -->
     <div id="status" class="disconnected">Connecting...</div>
 
+    <!-- Комната ожидания -->
     <div id="waiting" class="waiting" style="display:none;">
-        <p>Waiting for someone to join your room...</p>
+        <h2 id="roomTitle">🕓 Waiting Room </h2>
+        <p class="subtext">Share this link with your friend:</p>
         <button class="copy" onclick="copyInvite()">Copy Invite Link 📋</button>
     </div>
 
-    <div class="controls" id="controls" style="display:none;">
-        <button id="muteBtn">Mute</button>
-        <button class="leave" onclick="leaveRoom()">Leave</button>
+    <!-- Активная комната -->
+    <div id="activeRoom" class="active-room" style="display:none;">
+        <h2 id="roomHeader">🎤 Voice Room <a id="roomLinkActive" href="#">#000000</a></h2>
+
+        <div id="users" class="users">
+            <p>No users yet...</p>
+        </div>
+
+        <div class="controls">
+            <button id="muteBtn">🎙 Mute</button>
+        </div>
     </div>
 
-    <h2>Participants</h2>
-    <div id="users"><p>No users yet...</p></div>
+    <!-- Кнопка выхода -->
+    <div class="bottom-controls">
+        <button class="leave" onclick="leaveRoom()">Leave Room</button>
+    </div>
 </div>
 
 <script src="js/room.js"></script>

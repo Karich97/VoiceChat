@@ -1,16 +1,16 @@
 package ru.karich.tcp
 
 import jakarta.annotation.PostConstruct
-import ru.karich.service.RoomService
 import kotlinx.coroutines.*
 import org.springframework.stereotype.Component
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import ru.karich.service.RoomService
 import java.net.ServerSocket
 import java.net.Socket
 
 @Component
-class VoiceServer(private val roomService: RoomService) {
+class VoiceServer(
+    private val roomService: RoomService
+) {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -21,7 +21,7 @@ class VoiceServer(private val roomService: RoomService) {
             println("🎙 Voice TCP server started on port 5555")
 
             while (isActive) {
-                val socket = withContext(Dispatchers.IO) { serverSocket.accept() }
+                val socket = serverSocket.accept()
                 println("👂 New TCP connection: ${socket.inetAddress.hostAddress}")
                 launch { handleClient(socket) }
             }
@@ -30,10 +30,9 @@ class VoiceServer(private val roomService: RoomService) {
 
     private suspend fun handleClient(socket: Socket) = withContext(Dispatchers.IO) {
         try {
-            val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
-            val roomId = reader.readLine()?.trim() ?: return@withContext
+            val roomId = socket.getInputStream().bufferedReader().readLine()?.trim() ?: return@withContext
 
-            val room = roomService.joinRoom(roomId, socket)
+            val room = roomService.joinRoom(roomId, socket = socket)
             if (room == null) {
                 println("❌ Room not found: $roomId")
                 socket.close()
@@ -53,6 +52,7 @@ class VoiceServer(private val roomService: RoomService) {
     }
 
     private fun startRelay(a: Socket, b: Socket) {
+        // каждая сессия TCP в отдельной корутине, неблокирующий поток
         scope.launch { VoiceSession(a, b).start() }
         scope.launch { VoiceSession(b, a).start() }
     }

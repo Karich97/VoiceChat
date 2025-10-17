@@ -14,7 +14,7 @@ const activeRoomEl = document.getElementById("activeRoom");
 let ws, audioCtx, player;
 const mutedRef = { value: false };
 
-// === Helper UI ===
+// === UI ===
 function showWaiting() {
   waitingEl.style.display = "block";
   activeRoomEl.style.display = "none";
@@ -26,8 +26,6 @@ function showActiveRoom() {
   activeRoomEl.style.display = "block";
   muteBtn.style.display = "inline-block";
   document.getElementById("roomHeader").textContent = `🎤 Voice Room #${roomId}`;
-
-  // Старт аудио только теперь
   startAudio();
 }
 
@@ -54,12 +52,8 @@ function leaveRoom() {
 // === Start Audio ===
 async function startAudio() {
   try {
-    console.log("🎤 Запуск AudioContext, sampleRate: 16000");
-    audioCtx = new AudioContext({ sampleRate: 16000 });
-
-    // Важно: сначала создаём плеер, потом вход
-    player = new AudioPlayer(audioCtx);
-    console.log("🔊 AudioPlayer ready");
+    if (!audioCtx) audioCtx = new AudioContext({ sampleRate: 16000 });
+    if (!player) player = new AudioPlayer(audioCtx);
 
     await initAudioInput(ws, mutedRef);
     console.log("🎙 Audio input initialized");
@@ -95,12 +89,8 @@ async function connect() {
 
     // Audio packet
     if (event.data instanceof ArrayBuffer) {
-      const int16 = new Int16Array(event.data);
-      if (!player) {
-        console.warn("⚠️ Получен звук, но player ещё не готов");
-        return;
-      }
-      await player.enqueue(int16);
+      if (!player) return console.warn("⚠️ Получен звук, но player ещё не готов");
+      await player.enqueue(event.data);
     }
   };
 

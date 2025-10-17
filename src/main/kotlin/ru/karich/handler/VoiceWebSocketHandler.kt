@@ -7,12 +7,13 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.BinaryWebSocketHandler
 import ru.karich.service.RoomService
 import java.net.Socket
-import java.util.concurrent.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
 
 @Component
 class VoiceWebSocketHandler(private val roomService: RoomService) : BinaryWebSocketHandler() {
 
-    private val socketMap = ConcurrentHashMap<WebSocketSession, Socket>()
     private val sessionRoom = ConcurrentHashMap<WebSocketSession, String>()
     private val roomExecutors = ConcurrentHashMap<String, ExecutorService>()
 
@@ -27,7 +28,6 @@ class VoiceWebSocketHandler(private val roomService: RoomService) : BinaryWebSoc
             return
         }
 
-        socketMap[session] = socket
         sessionRoom[session] = roomId
 
         roomExecutors.computeIfAbsent(roomId) {
@@ -37,27 +37,35 @@ class VoiceWebSocketHandler(private val roomService: RoomService) : BinaryWebSoc
         }
 
         broadcastUsers(roomId)
-        println("🎧 User joined room $roomId")
+        println("🎧 User joined room $roomId (session ${session.id})")
     }
 
     override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
         val roomId = sessionRoom[session] ?: return
         val roomExecutor = roomExecutors[roomId] ?: return
 
+        println("📦 Received binary audio: ${message.payload.remaining()} bytes from ${session.id}")
+
         roomExecutor.submit {
             try {
-                val raw = message.payload.array()
+                // безопасное копирование реальных данных (только remaining())
+                val buf = message.payload
+                val raw = ByteArray(buf.remaining())
+                buf.get(raw)
 
-                // 🔹 пересылаем всем остальным участникам комнаты без повторного gzip
-                sessionRoom.filter { it.value == roomId && it.key != session }.keys.forEach { otherSession ->
-                    if (otherSession.isOpen) {
-                        try {
-                            otherSession.sendMessage(BinaryMessage(raw))
-                        } catch (e: Exception) {
-                            println("⚠️ Error sending to ${otherSession.id}: ${e.message}")
+                // пересылаем всем остальным участникам комнаты
+                sessionRoom
+                    .filter { it.value == roomId && it.key != session }
+                    .keys.forEach { other ->
+                        if (other.isOpen) {
+                            try {
+                                other.sendMessage(BinaryMessage(raw))
+                                println("📤 Forwarded ${raw.size} bytes to ${other.id}")
+                            } catch (e: Exception) {
+                                println("⚠️ Error sending to ${other.id}: ${e.message}")
+                            }
                         }
                     }
-                }
             } catch (e: Exception) {
                 println("⚠️ Audio task failed: ${e.message}")
             }
@@ -66,10 +74,8 @@ class VoiceWebSocketHandler(private val roomService: RoomService) : BinaryWebSoc
 
     override fun afterConnectionClosed(session: WebSocketSession, status: org.springframework.web.socket.CloseStatus) {
         val roomId = sessionRoom[session] ?: return
-        val socket = socketMap[session] ?: return
 
-        roomService.leaveRoom(roomId, socket)
-        socketMap.remove(session)
+        roomService.leaveRoom(roomId, Socket())
         sessionRoom.remove(session)
 
         if (sessionRoom.none { it.value == roomId }) {
@@ -79,12 +85,13 @@ class VoiceWebSocketHandler(private val roomService: RoomService) : BinaryWebSoc
         }
 
         broadcastUsers(roomId)
-        println("👋 User left room $roomId")
+        println("👋 User left room $roomId (session ${session.id})")
     }
 
     private fun broadcastUsers(roomId: String) {
         val participants = roomService.listParticipants(roomId)
-        val json = """{"users":${participants.map { """{"name":"$it","active":true}""" }}}"""
+        val usersJson = participants.joinToString(prefix = "[", postfix = "]") { """{"name":"$it","active":true}""" }
+        val json = """{"users":$usersJson}"""
 
         sessionRoom.filter { it.value == roomId }.keys.forEach { session ->
             if (session.isOpen) {

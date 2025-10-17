@@ -1,3 +1,6 @@
+import { initAudioInput } from "./audioInput.js";
+import { AudioPlayer } from "./audioOutput.js";
+
 const params = new URLSearchParams(location.search);
 const roomId = params.get("id");
 let userName = params.get("name");
@@ -8,165 +11,139 @@ const usersEl = document.getElementById("users");
 const waitingEl = document.getElementById("waiting");
 const activeRoomEl = document.getElementById("activeRoom");
 
-let muted = false, ws, audioCtx, analyser, dataArray, silenceFrames = 0;
+let ws, audioCtx, player;
+const mutedRef = { value: false };
 
-// === Показ комнаты ожидания ===
+// === Helper UI ===
 function showWaiting() {
   waitingEl.style.display = "block";
   activeRoomEl.style.display = "none";
-    console.log("Room ID:", roomId);
-  const roomTitle = document.getElementById("roomTitle");
-  roomTitle.textContent = `🕓 Waiting Room #${roomId}`;
+  document.getElementById("roomTitle").textContent = `🕓 Waiting Room #${roomId}`;
 }
 
-// === Показ активной комнаты ===
 function showActiveRoom() {
   waitingEl.style.display = "none";
   activeRoomEl.style.display = "block";
-  muteBtn.style.display = "inline-block"; // показываем кнопку
+  muteBtn.style.display = "inline-block";
+  document.getElementById("roomHeader").textContent = `🎤 Voice Room #${roomId}`;
 
-  const roomHeader = document.getElementById("roomHeader");
-  roomHeader.textContent = `🎤 Voice Room #${roomId}`;
+  // Старт аудио только теперь
+  startAudio();
 }
 
-// === Copy link ===
+// === Invite copy ===
 function copyInvite() {
   const url = `${window.location.origin}/room.html?id=${roomId}`;
   navigator.clipboard.writeText(url);
   const btn = document.querySelector(".copy");
-  btn.textContent = "Copied ✅";
-  setTimeout(() => (btn.textContent = "Copy Invite Link 📋"), 1500);
-}
-
-// === Audio ===
-async function initAudio() {
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const input = audioCtx.createMediaStreamSource(stream);
-  const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 512;
-  dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-  input.connect(analyser);
-  input.connect(processor);
-  processor.connect(audioCtx.destination);
-
-  processor.onaudioprocess = async e => {
-    if (muted || !ws || ws.readyState !== WebSocket.OPEN) return;
-
-    analyser.getByteFrequencyData(dataArray);
-    const avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
-    const speaking = avg > 25;
-
-    if (!speaking) {
-      silenceFrames++;
-      if (silenceFrames > 5) return;
-    } else {
-      silenceFrames = 0;
-    }
-
-    const channel = e.inputBuffer.getChannelData(0);
-    const int16 = new Int16Array(channel.length);
-    for (let i = 0; i < channel.length; i++) int16[i] = channel[i] * 0x7fff;
-
-    const cs = new CompressionStream("gzip");
-    const writer = cs.writable.getWriter();
-    writer.write(int16);
-    writer.close();
-    const compressed = await new Response(cs.readable).arrayBuffer();
-    ws.send(compressed);
-  };
-}
-
-// === Users ===
-function renderUsers(list) {
-  usersEl.innerHTML = "";
-  if (!list.length) {
-    usersEl.innerHTML = "<p>No users yet...</p>";
-    return;
-  }
-  list.forEach(u => {
-    const div = document.createElement("div");
-    div.className = "user" + (u === userName ? " self" : "");
-    div.textContent = u.name || u;
-    usersEl.appendChild(div);
-  });
-
-  // Убираем ожидание, когда двое подключены
-  if (list.length >= 2) {
-    showActiveRoom();
-  } else {
-    showWaiting();
+  if (btn) {
+    btn.textContent = "Copied ✅";
+    setTimeout(() => (btn.textContent = "Copy Invite Link 📋"), 1500);
   }
 }
 
-// === WS ===
+// === Leave room ===
+function leaveRoom() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ leave: true }));
+    ws.close();
+  }
+  window.location.href = "/";
+}
+
+// === Start Audio ===
+async function startAudio() {
+  try {
+    console.log("🎤 Запуск AudioContext, sampleRate: 16000");
+    audioCtx = new AudioContext({ sampleRate: 16000 });
+
+    // Важно: сначала создаём плеер, потом вход
+    player = new AudioPlayer(audioCtx);
+    console.log("🔊 AudioPlayer ready");
+
+    await initAudioInput(ws, mutedRef);
+    console.log("🎙 Audio input initialized");
+  } catch (err) {
+    console.error("❌ Ошибка инициализации аудио:", err);
+  }
+}
+
+// === WebSocket ===
 async function connect() {
-  if (!userName) {
-    userName = prompt("Enter your name") || "Guest";
-  }
+  if (!userName) userName = prompt("Enter your name") || "Guest";
 
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${wsProtocol}//${location.hostname}:${location.port}/voice?room=${roomId}&name=${encodeURIComponent(userName)}`;
+  console.log("🔌 Connecting to:", wsUrl);
+
   ws = new WebSocket(wsUrl);
   ws.binaryType = "arraybuffer";
 
   ws.onopen = () => {
+    console.log("✅ WebSocket connected");
     statusEl.textContent = "Connected ✅";
     statusEl.className = "connected";
-    initAudio();
-    waitingEl.style.display = "block"; // показываем, пока второй не присоединился
-    showWaiting();
   };
 
-  ws.onmessage = async event => {
+  ws.onmessage = async (event) => {
+    // JSON update
     if (typeof event.data === "string") {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.users) renderUsers(data.users);
-      } catch (_) {}
+      const data = JSON.parse(event.data);
+      if (data.users) renderUsers(data.users);
       return;
     }
 
-    try {
-      const ds = new DecompressionStream("gzip");
-      const writer = ds.writable.getWriter();
-      writer.write(event.data);
-      writer.close();
-      const arrayBuffer = await new Response(ds.readable).arrayBuffer();
-
-      const int16 = new Int16Array(arrayBuffer);
-      const buffer = audioCtx.createBuffer(1, int16.length, 16000);
-      const float32 = buffer.getChannelData(0);
-      for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 0x7fff;
-
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-      src.connect(audioCtx.destination);
-      src.start();
-    } catch (err) {
-      console.warn("Decompression failed:", err);
+    // Audio packet
+    if (event.data instanceof ArrayBuffer) {
+      const int16 = new Int16Array(event.data);
+      if (!player) {
+        console.warn("⚠️ Получен звук, но player ещё не готов");
+        return;
+      }
+      await player.enqueue(int16);
     }
   };
 
   ws.onclose = () => {
+    console.log("🔴 WebSocket closed");
     statusEl.textContent = "Disconnected ❌";
     statusEl.className = "disconnected";
     setTimeout(() => (window.location.href = "/"), 1500);
   };
 }
 
-muteBtn.onclick = () => {
-  muted = !muted;
-  muteBtn.textContent = muted ? "Unmute" : "Mute";
-  muteBtn.classList.toggle("muted", muted);
-};
+// === Users ===
+function renderUsers(list) {
+  usersEl.innerHTML = list.length
+    ? list.map(u => `<div class="user${u === userName ? " self" : ""}">${u.name || u}</div>`).join("")
+    : "<p>No users yet...</p>";
 
-function leaveRoom() {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ leave: true }));
-  ws.close();
+  console.log("👥 Current users:", list);
+
+  if (list.length >= 2) {
+    console.log("🚀 Two or more users, entering active room");
+    showActiveRoom();
+  } else {
+    console.log("⏳ Waiting for another user...");
+    showWaiting();
+  }
 }
 
-connect();
+// === Controls ===
+muteBtn.onclick = () => {
+  mutedRef.value = !mutedRef.value;
+  muteBtn.textContent = mutedRef.value ? "Unmute" : "Mute";
+  muteBtn.classList.toggle("muted", mutedRef.value);
+  console.log("🎙 Mute toggled:", mutedRef.value);
+};
+
+// === DOM Ready ===
+document.addEventListener("DOMContentLoaded", () => {
+  const copyBtn = document.querySelector(".copy");
+  if (copyBtn) copyBtn.addEventListener("click", copyInvite);
+
+  const leaveBtn = document.querySelector(".leave");
+  if (leaveBtn) leaveBtn.addEventListener("click", leaveRoom);
+
+  connect();
+});

@@ -31,6 +31,7 @@ class RoomService {
         return room
     }
 
+    // тут можно убрать сокет и просто дисконектить в хендлере при вызове этой функции просто закидывается новый сокет
     fun leaveRoom(id: String, socket: Socket) {
         val room = rooms[id] ?: return
         synchronized(room) {

@@ -20,7 +20,7 @@
     <div id="waiting" class="waiting" style="display:none;">
         <h2 id="roomTitle">🕓 Waiting Room </h2>
         <p class="subtext">Share this link with your friend:</p>
-        <button class="copy" onclick="copyInvite()">Copy Invite Link 📋</button>
+        <button id="copyBtn" class="copy">Copy Invite Link 📋</button>
     </div>
 
     <!-- Активная комната -->
@@ -38,11 +38,11 @@
 
     <!-- Кнопка выхода -->
     <div class="bottom-controls">
-        <button class="leave" onclick="leaveRoom()">Leave Room</button>
+        <button id="leaveBtn" class="leave">Leave Room</button>
     </div>
 </div>
 
-<script src="js/room.js"></script>
+<script type="module" src="js/room.js"></script>
 <script src="js/them.js"></script>
 </body>
 </html>

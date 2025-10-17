@@ -25,15 +25,50 @@ body {
   margin: 0;
   padding: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100vh;
+  justify-content: flex-start;
+  min-height: 100vh;
   transition: background 0.3s, color 0.3s;
 }
+
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 1.2em 2em;
+  background: var(--card);
+  box-shadow:
+    4px 4px 10px var(--shadow-dark),
+    -4px -4px 10px var(--shadow-light);
+  position: relative;
+  z-index: 10;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8em;
+  flex: 1; /* растягиваем заголовок на доступное пространство */
+  text-align: center; /* заголовок по центру */
+}
+
+#themeToggle {
+  cursor: pointer;
+  font-size: 1.4em;
+  border: none;
+  background: none;
+  color: var(--fg);
+  transition: transform 0.2s;
+  width: auto; /* кнопка под размер содержимого */
+  padding: 0.2em 0.5em; /* компактная */
+}
+
+#themeToggle:hover { transform: scale(1.2); }
 
 .container {
   width: 90%;
   max-width: 420px;
+  margin-top: 3em;
   background: var(--card);
   border-radius: 20px;
   padding: 2em;
@@ -44,14 +79,20 @@ body {
   transition: all 0.3s;
 }
 
-h1 {
+.container h1 {
   font-size: 1.8em;
+  margin-bottom: 0.5em;
+}
+
+.container p {
+  font-size: 1em;
   margin-bottom: 1em;
+  color: var(--fg);
 }
 
 input {
   width: 100%;
-  padding: 0.8em;
+  padding: 0.9em;
   margin-bottom: 1em;
   font-size: 1em;
   border: none;
@@ -62,33 +103,31 @@ input {
   background: var(--card);
   color: var(--fg);
   outline: none;
+  transition: box-shadow 0.2s;
+}
+
+input:focus {
+  box-shadow:
+    inset 2px 2px 5px var(--shadow-dark),
+    inset -2px -2px 5px var(--shadow-light);
 }
 
 button {
   width: 100%;
-  padding: 0.8em;
+  padding: 0.9em;
   font-size: 1.1em;
   border: none;
   border-radius: 12px;
   background: var(--btn);
   color: white;
   cursor: pointer;
-  transition: background 0.25s, transform 0.1s;
+  transition: background 0.25s, transform 0.1s, box-shadow 0.25s;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-button:hover { background: var(--btn-hover); }
-button:active { transform: scale(0.97); }
-
-.theme-toggle {
-  position: absolute;
-  top: 1em;
-  right: 1em;
-  cursor: pointer;
-  font-size: 1.4em;
-  background: none;
-  border: none;
-  color: var(--fg);
-  transition: transform 0.2s;
+button:hover {
+  background: var(--btn-hover);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
 }
-.theme-toggle:hover { transform: scale(1.2); }
+
+button:active { transform: scale(0.97); }

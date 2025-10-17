@@ -8,11 +8,16 @@ import java.util.concurrent.ConcurrentHashMap
 @Service
 class RoomService {
     private val rooms = ConcurrentHashMap<String, Room>()
-
-    fun listRooms(): List<Room> = rooms.values.toList()
+    private val random = java.util.Random()
 
     fun createRoom(name: String): Room {
-        val room = Room(name = name)
+        var roomId: String
+        do {
+            // Генерируем случайное 6-значное число как строку с ведущими нулями
+            roomId = String.format("%06d", random.nextInt(1_000_000))
+        } while (rooms.containsKey(roomId)) // проверяем уникальность
+
+        val room = Room(id = roomId, name = name)
         rooms[room.id] = room
         return room
     }

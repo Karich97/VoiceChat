@@ -7,9 +7,6 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/rooms")
 class RoomController(private val roomService: RoomService) {
 
-    @GetMapping
-    fun listRooms() = roomService.listRooms()
-
     @PostMapping
     fun createRoom(@RequestParam name: String) = roomService.createRoom(name)
 }

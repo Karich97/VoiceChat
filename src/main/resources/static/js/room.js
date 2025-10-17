@@ -10,20 +10,6 @@ const controlsEl = document.getElementById("controls");
 
 let muted = false, ws, audioCtx, analyser, dataArray, silenceFrames = 0;
 
-// === Theme ===
-function toggleTheme() {
-  const isDark = document.body.classList.toggle("dark");
-  localStorage.setItem("theme", isDark ? "dark" : "light");
-  document.querySelector(".theme-toggle").textContent = isDark ? "🌙" : "🌞";
-}
-(function restoreTheme() {
-  const theme = localStorage.getItem("theme");
-  if (theme === "dark") {
-    document.body.classList.add("dark");
-    document.querySelector(".theme-toggle").textContent = "🌙";
-  }
-})();
-
 // === Copy link ===
 function copyInvite() {
   const url = `${window.location.origin}/room.html?id=${roomId}`;

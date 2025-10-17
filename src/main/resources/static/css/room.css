@@ -1,0 +1,50 @@
+/* Комната — только уникальные элементы */
+
+#status {
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 1em;
+}
+
+#status.connected { color: #00c851; }
+#status.disconnected { color: #ff4444; }
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1em;
+  margin-bottom: 1.5em;
+}
+
+button.leave { background: #dc3545; }
+button.leave:hover { background: #b02a37; }
+button.copy { background: #28a745; }
+button.copy:hover { background: #218838; }
+button.muted { background: #6c757d; }
+
+#users {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 1em;
+  box-shadow:
+    inset 4px 4px 8px var(--shadow-dark),
+    inset -4px -4px 8px var(--shadow-light);
+  transition: background 0.4s;
+}
+
+.user {
+  padding: 0.4em 0.6em;
+  border-radius: 8px;
+  margin-bottom: 0.3em;
+}
+.user.self {
+  font-weight: bold;
+  color: var(--btn);
+}
+
+.waiting {
+  text-align: center;
+  padding: 2em;
+  font-size: 1.1em;
+  opacity: 0.8;
+}

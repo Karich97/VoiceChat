@@ -55,6 +55,21 @@ async function startAudio() {
     if (!audioCtx) audioCtx = new AudioContext({ sampleRate: 16000 });
     if (!player) player = new AudioPlayer(audioCtx);
 
+    // Wake Lock, чтобы экран не тух
+    if ('wakeLock' in navigator) {
+      try {
+        let wakeLock = await navigator.wakeLock.request('screen');
+        console.log("🟢 WakeLock активирован");
+        document.addEventListener('visibilitychange', async () => {
+          if (wakeLock !== null && document.visibilityState === 'visible') {
+            wakeLock = await navigator.wakeLock.request('screen');
+          }
+        });
+      } catch (err) {
+        console.warn("⚠ Не удалось активировать WakeLock:", err);
+      }
+    }
+
     await initAudioInput(ws, mutedRef);
     console.log("🎙 Audio input initialized");
   } catch (err) {

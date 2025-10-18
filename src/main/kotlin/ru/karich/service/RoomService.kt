@@ -50,33 +50,25 @@ class RoomService {
         return room
     }
 
-    /** Отключение TCP или WebSocket */
-    fun leaveRoom(
-        id: String,
-        socket: Socket? = null,
-        ws: org.springframework.web.socket.WebSocketSession? = null
-    ) {
-        val room = rooms[id] ?: return
+    /** Отключение TCP или WebSocket, очистка ресурсов комнаты */
+    /** Полное удаление комнаты и освобождение всех ресурсов */
+    fun leaveRoom(id: String) {
+        val room = rooms.remove(id) ?: return
 
-        socket?.let {
-            if (room.clientA == it) room.clientA = null
-            else if (room.clientB == it) room.clientB = null
+        // Закрываем TCP сокеты
+        listOfNotNull(room.clientA, room.clientB).forEach { socket ->
+            try { socket.close() } catch (_: Exception) {}
         }
+        room.clientA = null
+        room.clientB = null
 
-        ws?.let { session ->
-            room.participants.removeIf { it.second.id == session.id }
+        // Закрываем все WebSocket-сессии
+        room.participants.forEach { (_, session) ->
+            try { if (session.isOpen) session.close() } catch (_: Exception) {}
         }
+        room.participants.clear()
 
-        // Если TCP клиентов нет, оставшихся отключаем
-        if (room.clientA == null && room.clientB == null) {
-            room.clientA?.close(); room.clientA = null
-            room.clientB?.close(); room.clientB = null
-        }
-
-        // Если никого нет — удаляем комнату
-        if (room.clientA == null && room.clientB == null && room.participants.isEmpty()) {
-            rooms.remove(id)
-        }
+        println("🗑 Room $id removed, all resources cleaned")
     }
 
     /** Список участников WebSocket с именами */

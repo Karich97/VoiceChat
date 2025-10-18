@@ -3,6 +3,7 @@ package ru.karich.handler
 import kotlinx.coroutines.*
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.BinaryMessage
+import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.BinaryWebSocketHandler
@@ -57,14 +58,20 @@ class VoiceWebSocketHandler(
 
     override fun afterConnectionClosed(session: WebSocketSession, status: org.springframework.web.socket.CloseStatus) {
         scope.launch {
+            // Получаем комнату, в которой была эта сессия
             val roomId = sessionRoom.remove(session) ?: return@launch
 
-            // Удаляем ws из комнаты
-            roomService.leaveRoom(roomId, ws = session)
+            // Удаляем комнату полностью
+            roomService.leaveRoom(roomId)
 
-            // Оповещаем остальных
-            broadcastUsers(roomId)
-            println("👋 User left room $roomId (session ${session.id})")
+            // Также удаляем все сессии, которые могли оставаться в sessionRoom
+            val sessionsToClose = sessionRoom.filter { it.value == roomId }.keys
+            sessionsToClose.forEach { s ->
+                try { if (s.isOpen) s.close(CloseStatus.NORMAL) } catch (_: Exception) {}
+                sessionRoom.remove(s)
+            }
+
+            println("🗑 Room $roomId removed, all users disconnected")
         }
     }
 

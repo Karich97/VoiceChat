@@ -1,10 +1,35 @@
-// audioOutput.js
 export class AudioPlayer {
   constructor(audioCtx) {
     this.audioCtx = audioCtx;
     this.bufferedSamples = [];
     this.nextTime = audioCtx.currentTime + 0.1;
     this.resampleRatio = audioCtx.sampleRate / 16000;
+
+    // определяем Android
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    this.isAndroid = /Android/.test(ua);
+
+    if (this.isAndroid) {
+      // создаём MediaStreamDestination для вывода через <audio> на Android
+      this.dest = audioCtx.createMediaStreamDestination();
+      this.audioEl = new Audio();
+      this.audioEl.autoplay = true;
+      this.audioEl.playsInline = true;
+      this.audioEl.srcObject = this.dest.stream;
+      document.body.appendChild(this.audioEl);
+
+      // пробуем выбрать основной динамик
+      if (this.audioEl.setSinkId) {
+        this.audioEl.setSinkId("default").catch(err =>
+          console.warn("⚠ Не удалось выбрать динамик:", err)
+        );
+      }
+
+      console.log("🔊 Android detected — using main speaker");
+    } else {
+      this.dest = null; // iOS / Desktop — стандартная логика
+    }
+
     console.log("🔊 AudioPlayer ready");
   }
 
@@ -44,7 +69,13 @@ export class AudioPlayer {
 
     const src = this.audioCtx.createBufferSource();
     src.buffer = buffer;
-    src.connect(this.audioCtx.destination);
+
+    // вывод на Android через <audio>, иначе стандартный destination
+    if (this.isAndroid && this.dest) {
+      src.connect(this.dest);
+    } else {
+      src.connect(this.audioCtx.destination);
+    }
 
     if (this.nextTime < this.audioCtx.currentTime) this.nextTime = this.audioCtx.currentTime + 0.05;
     src.start(this.nextTime);

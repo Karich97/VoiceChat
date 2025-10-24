@@ -2,7 +2,7 @@ server:
   port: 8443
   ssl:
     enabled: true
-    key-store: file:/etc/letsencrypt/live/85.198.110.217.nip.io/keystore.p12
+    key-store: keystore.p12
     key-store-type: PKCS12
     key-store-password: changeit
 

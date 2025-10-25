@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.karich"
-version = "1.0.1"
+version = "1.1.1"
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {

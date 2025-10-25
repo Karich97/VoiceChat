@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.karich"
-version = "1.0.1"
+version = "1.1.1"
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
@@ -14,15 +14,19 @@ repositories {
 
 dependencies {
     // Spring Boot
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
+    // Jackson
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.9.0")
 
     // Test
@@ -30,10 +34,9 @@ dependencies {
 
     // Spring Boot Actuator для метрик
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("io.micrometer:micrometer-registry-prometheus")
-
-    // Micrometer (по желанию, для более гибких метрик)
+    // Micrometer
     implementation("io.micrometer:micrometer-core")
+    // Prometheus
     implementation("io.micrometer:micrometer-registry-prometheus")
 }
 
@@ -49,5 +52,5 @@ tasks.withType<Test> {
 
 // Для Spring Boot fat JAR
 tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
-    mainClass.set("ru.karich.VoiceChatApplicationKt")
+    mainClass.set("ru.karich.VoiceChatServerApiKt")
 }

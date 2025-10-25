@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
+
 <header class="header">
     <h1 id="chatTitle">🎧 Voice Chat</h1>
     <button id="themeToggle">🌙</button>
@@ -14,16 +15,27 @@
 
 <div class="container">
     <h1>Entry Room</h1>
-    <p>Enter your name to start a chat room</p>
-    <input id="roomName" type="text" placeholder="Your name..." />
-    <button id="createBtn">Create Room</button>
-
-    <p>Or use room number to join other</p>
-    <input id="roomNumber" type="text" placeholder="000 000" />
-    <button id="joinBtn">Join Room</button>
+    <section id="create">
+        <p>Enter your name to start a chat room</p>
+        <label for="nameInput">
+            <input id="nameInput" type="text" placeholder="Your name..." />
+        </label>
+        <button id="createBtn">Create Room</button>
+    </section>
 </div>
 
-<script src="js/index.js"></script>
-<script src="js/them.js"></script>
+<div class="container">
+    <h1>OR</h1>
+    <section id="join">
+        <p>Use room number to join other</p>
+        <label for="roomNumber">
+            <input id="roomNumber" type="text" placeholder="000 000" />
+        </label>
+        <button id="joinBtn">Join Room</button>
+    </section>
+</div>
+
+<script type="module" src="js/index.js"></script>
+<script type="module" src="js/them.js"></script>
 </body>
 </html>

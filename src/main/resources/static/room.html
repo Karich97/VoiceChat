@@ -1,117 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>🎙 Voice Room</title>
-    <style>
-        body {
-          font-family: "Inter", sans-serif;
-          margin: 0;
-          padding: 2em;
-          background: linear-gradient(145deg, #eaeaea, #d0d0d0);
-          color: #111;
-          transition: background 0.4s, color 0.4s;
-        }
-        body.dark {
-          background: linear-gradient(145deg, #1c1c1c, #2a2a2a);
-          color: #eee;
-        }
-        .container {
-          max-width: 640px;
-          margin: 0 auto;
-          background: rgba(255, 255, 255, 0.9);
-          backdrop-filter: blur(8px);
-          border-radius: 20px;
-          padding: 2em;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-          transition: background 0.4s;
-        }
-        body.dark .container {
-          background: rgba(40, 40, 40, 0.9);
-        }
-        h1 { text-align: center; margin-bottom: 1em; font-size: 1.8em; }
-
-        #status {
-          text-align: center;
-          font-weight: 600;
-          margin-bottom: 1em;
-        }
-        #status.connected { color: #00c851; }
-        #status.disconnected { color: #ff4444; }
-
-        .controls {
-          display: flex;
-          justify-content: center;
-          gap: 1em;
-          margin-bottom: 1.5em;
-        }
-        button {
-          padding: 0.8em 1.6em;
-          font-size: 1em;
-          border: none;
-          border-radius: 10px;
-          background: #007bff;
-          color: #fff;
-          cursor: pointer;
-          transition: all 0.25s;
-        }
-        button:hover { background: #0056b3; }
-        button.leave { background: #dc3545; }
-        button.leave:hover { background: #b02a37; }
-        button.copy { background: #28a745; }
-        button.copy:hover { background: #218838; }
-        button.muted { background: #6c757d; }
-
-        #users {
-          background: rgba(255, 255, 255, 0.6);
-          border-radius: 12px;
-          padding: 1em;
-          box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
-          transition: background 0.4s;
-        }
-        body.dark #users { background: rgba(60, 60, 60, 0.5); }
-
-        .user { padding: 0.4em 0.6em; border-radius: 8px; margin-bottom: 0.3em; }
-        .user.self { font-weight: bold; color: #007bff; }
-
-        .waiting {
-          text-align: center;
-          padding: 2em;
-          font-size: 1.1em;
-          opacity: 0.8;
-        }
-
-        .theme-toggle {
-          position: fixed;
-          top: 1em;
-          right: 1em;
-          cursor: pointer;
-          background: none;
-          border: none;
-          font-size: 1.4em;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/room.css" />
 </head>
 <body>
-<button class="theme-toggle" onclick="toggleTheme()">🌞</button>
+<header class="header">
+    <h1 id="chatTitle">🎧 Voice Chat</h1>
+    <button id="themeToggle">🌙</button>
+</header>
+
 <div class="container">
-    <h1>🎧 Voice Room</h1>
+    <!-- Статус соединения -->
     <div id="status" class="disconnected">Connecting...</div>
 
+    <!-- Комната ожидания -->
     <div id="waiting" class="waiting" style="display:none;">
-        <p>Waiting for someone to join your room...</p>
-        <button class="copy" onclick="copyInvite()">Copy Invite Link 📋</button>
+        <h2 id="roomTitle">🕓 Waiting Room </h2>
+        <p class="subtext">Share this link with your friend:</p>
+        <button id="copyBtn" class="copy">Copy Invite Link 📋</button>
     </div>
 
-    <div class="controls" id="controls" style="display:none;">
-        <button id="muteBtn">Mute</button>
-        <button class="leave" onclick="leaveRoom()">Leave</button>
+    <!-- Активная комната -->
+    <div id="activeRoom" class="active-room" style="display:none;">
+        <h2 id="roomHeader">🎤 Voice Room <a id="roomLinkActive" href="#">#000000</a></h2>
+
+        <div id="users" class="users">
+            <p>No users yet...</p>
+        </div>
+
+        <div class="controls">
+            <button id="muteBtn">🎙 Mute</button>
+        </div>
     </div>
 
-    <h2>Participants</h2>
-    <div id="users"><p>No users yet...</p></div>
+    <!-- Кнопка выхода -->
+    <div class="bottom-controls">
+        <button id="leaveBtn" class="leave">Leave Room</button>
+    </div>
 </div>
 
-<script src="room.js"></script>
+<script type="module" src="js/room.js"></script>
+<script src="js/them.js"></script>
 </body>
 </html>

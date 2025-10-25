@@ -1,90 +1,84 @@
 package ru.karich.handler
 
+import kotlinx.coroutines.*
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.BinaryMessage
+import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.BinaryWebSocketHandler
 import ru.karich.service.RoomService
-import java.net.Socket
-import java.util.concurrent.*
+import java.util.concurrent.ConcurrentHashMap
 
 @Component
-class VoiceWebSocketHandler(private val roomService: RoomService) : BinaryWebSocketHandler() {
+class VoiceWebSocketHandler(
+    private val roomService: RoomService
+) : BinaryWebSocketHandler() {
 
-    private val socketMap = ConcurrentHashMap<WebSocketSession, Socket>()
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val sessionRoom = ConcurrentHashMap<WebSocketSession, String>()
-    private val roomExecutors = ConcurrentHashMap<String, ExecutorService>()
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
-        val query = session.uri?.query ?: return
-        val roomId = query.split("&").firstOrNull { it.startsWith("room=") }?.substringAfter("=") ?: return
+        scope.launch {
+            val query = session.uri?.query ?: return@launch
+            val roomId = query.split("&").firstOrNull { it.startsWith("room=") }?.substringAfter("=") ?: return@launch
+            val userName = query.split("&").firstOrNull { it.startsWith("name=") }?.substringAfter("=") ?: "Guest"
 
-        val socket = Socket()
-        val room = roomService.joinRoom(roomId, socket)
-        if (room == null) {
-            session.close()
-            return
-        }
-
-        socketMap[session] = socket
-        sessionRoom[session] = roomId
-
-        roomExecutors.computeIfAbsent(roomId) {
-            Executors.newSingleThreadExecutor { r ->
-                Thread(r, "audio-room-$roomId").apply { isDaemon = true }
+            val room = roomService.joinRoom(roomId, ws = session, userName = userName)
+            if (room == null) {
+                session.close()
+                return@launch
             }
-        }
 
-        broadcastUsers(roomId)
-        println("🎧 User joined room $roomId")
+            sessionRoom[session] = roomId
+            broadcastUsers(roomId)
+            println("🎧 User joined room $roomId (session ${session.id}, name $userName)")
+        }
     }
 
     override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
-        val roomId = sessionRoom[session] ?: return
-        val roomExecutor = roomExecutors[roomId] ?: return
+        scope.launch {
+            val roomId = sessionRoom[session] ?: return@launch
+            val buf = message.payload
+            val raw = ByteArray(buf.remaining())
+            buf.get(raw)
 
-        roomExecutor.submit {
-            try {
-                val raw = message.payload.array()
-
-                // 🔹 пересылаем всем остальным участникам комнаты без повторного gzip
-                sessionRoom.filter { it.value == roomId && it.key != session }.keys.forEach { otherSession ->
-                    if (otherSession.isOpen) {
-                        try {
-                            otherSession.sendMessage(BinaryMessage(raw))
-                        } catch (e: Exception) {
-                            println("⚠️ Error sending to ${otherSession.id}: ${e.message}")
-                        }
+            // Пересылаем всем остальным участникам комнаты
+            sessionRoom.filter { it.value == roomId && it.key != session }.keys.forEach { other ->
+                if (other.isOpen) {
+                    try {
+                        other.sendMessage(BinaryMessage(raw))
+                    } catch (e: Exception) {
+                        println("⚠️ Error sending to ${other.id}: ${e.message}")
                     }
                 }
-            } catch (e: Exception) {
-                println("⚠️ Audio task failed: ${e.message}")
             }
         }
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: org.springframework.web.socket.CloseStatus) {
-        val roomId = sessionRoom[session] ?: return
-        val socket = socketMap[session] ?: return
+        scope.launch {
+            // Получаем комнату, в которой была эта сессия
+            val roomId = sessionRoom.remove(session) ?: return@launch
 
-        roomService.leaveRoom(roomId, socket)
-        socketMap.remove(session)
-        sessionRoom.remove(session)
+            // Удаляем комнату полностью
+            roomService.leaveRoom(roomId)
 
-        if (sessionRoom.none { it.value == roomId }) {
-            roomExecutors[roomId]?.shutdownNow()
-            roomExecutors.remove(roomId)
-            println("🛑 Closed executor for empty room $roomId")
+            // Также удаляем все сессии, которые могли оставаться в sessionRoom
+            val sessionsToClose = sessionRoom.filter { it.value == roomId }.keys
+            sessionsToClose.forEach { s ->
+                try { if (s.isOpen) s.close(CloseStatus.NORMAL) } catch (_: Exception) {}
+                sessionRoom.remove(s)
+            }
+
+            println("🗑 Room $roomId removed, all users disconnected")
         }
-
-        broadcastUsers(roomId)
-        println("👋 User left room $roomId")
     }
 
-    private fun broadcastUsers(roomId: String) {
+    private suspend fun broadcastUsers(roomId: String) {
         val participants = roomService.listParticipants(roomId)
-        val json = """{"users":${participants.map { """{"name":"$it","active":true}""" }}}"""
+        val usersJson = participants.joinToString(prefix = "[", postfix = "]") { """{"name":"$it","active":true}""" }
+        val json = """{"users":$usersJson}"""
 
         sessionRoom.filter { it.value == roomId }.keys.forEach { session ->
             if (session.isOpen) {

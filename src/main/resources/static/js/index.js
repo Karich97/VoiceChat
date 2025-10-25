@@ -1,20 +1,5 @@
 const apiUrl = "/rooms";
-const themeBtn = document.getElementById("themeBtn");
 const createBtn = document.getElementById("createBtn");
-
-// === Theme handling ===
-const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-const savedTheme = localStorage.getItem("theme") || (prefersDark ? "dark" : "light");
-document.documentElement.setAttribute("data-theme", savedTheme);
-themeBtn.textContent = savedTheme === "dark" ? "☀️" : "🌙";
-
-themeBtn.onclick = () => {
-  const current = document.documentElement.getAttribute("data-theme");
-  const next = current === "dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme", next);
-  localStorage.setItem("theme", next);
-  themeBtn.textContent = next === "dark" ? "☀️" : "🌙";
-};
 
 // === Room creation ===
 createBtn.onclick = async () => {
@@ -36,4 +21,14 @@ createBtn.onclick = async () => {
     createBtn.disabled = false;
     createBtn.textContent = "Create Room";
   }
+};
+
+// === Room joining ===
+joinBtn.onclick = () => {
+  const roomNumber = document.getElementById("roomNumber").value.trim();
+
+  if (!/^\d{6}$/.test(roomNumber)) return alert("Enter a valid 6-digit room number");
+
+  // Переход в комнату
+  window.location.href = `room.html?id=${encodeURIComponent(roomNumber)}&name=${encodeURIComponent(name)}`;
 };

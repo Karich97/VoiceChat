@@ -3,19 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>🎙 Voice Chat</title>
+    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
-<button class="theme-toggle" id="themeBtn">🌙</button>
+<header class="header">
+    <h1 id="chatTitle">🎧 Voice Chat</h1>
+    <button id="themeToggle">🌙</button>
+</header>
 
 <div class="container">
-    <h1>🎧 Voice Chat</h1>
+    <h1>Entry Room</h1>
     <p>Enter your name to start a chat room</p>
-
     <input id="roomName" type="text" placeholder="Your name..." />
     <button id="createBtn">Create Room</button>
+
+    <p>Or use room number to join other</p>
+    <input id="roomNumber" type="text" placeholder="000 000" />
+    <button id="joinBtn">Join Room</button>
 </div>
 
 <script src="js/index.js"></script>
+<script src="js/them.js"></script>
 </body>
 </html>
